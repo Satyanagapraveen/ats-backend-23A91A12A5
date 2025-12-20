@@ -118,11 +118,15 @@ python manage.py createsuperuser
 python manage.py runserver
 
 python -m celery -A config worker -l info --pool=solo
+```
+## Environment Variables
 
+Create a `.env` file with the following:
+
+```env
 SECRET_KEY=your-secret-key
 DEBUG=True
 REDIS_URL=redis://localhost:6379/0
-
 ```
  
 ## ✅ Key Features Summary
