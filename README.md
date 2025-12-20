@@ -135,4 +135,161 @@ REDIS_URL=redis://localhost:6379/0
 - Asynchronous email notifications
 - Clean layered architecture
 - Production-inspired backend design
+## Architecture & overview
+```mermaid
+flowchart TB
+    subgraph "Client Layer"
+        A[Candidate]
+        B[Recruiter]
+    end
+    
+    subgraph "API Layer"
+        C[Django REST API]
+    end
+    
+    subgraph "Business Layer"
+        D[Service Layer]
+    end
+    
+    subgraph "Data Layer"
+        E[(SQL Database)]
+    end
+    
+    subgraph "Async Processing"
+        F[(Redis Message Queue)]
+        G[Celery Worker]
+        H[Email Service]
+    end
+    
+    A -->|HTTP Requests| C
+    B -->|HTTP Requests| C
+    C -->|Business Logic| D
+    D -->|Data Operations| E
+    C -->|Enqueue Tasks| F
+    F -->|Process Tasks| G
+    G -->|Send Emails| H
+    
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style C fill:#f3e5f5
+    style D fill:#e8f5e8
+    style E fill:#fff3e0
+    style F fill:#ffebee
+    style G fill:#ffebee
+    style H fill:#ffebee
+```
+## Application Workflow & State Machine
+ ``` mermaid
 
+stateDiagram-v2
+    [*] --> Applied
+    
+    Applied --> Screening : Valid
+    Applied --> Rejected : Reject
+    
+    Screening --> Interview : Pass Screening
+    Screening --> Rejected : Fail Screening
+    
+    Interview --> Offer : Pass Interview
+    Interview --> Rejected : Fail Interview
+    
+    Offer --> Hired : Accept Offer
+    Offer --> Rejected : Reject Offer
+    
+    Hired --> [*]
+    Rejected --> [*]
+    
+    note right of Applied
+        Initial state when candidate
+        submits application
+    end note
+    
+    note right of Hired
+        Terminal State - Final hiring
+        Cannot transition further
+    end note
+```
+ 
+---
+
+## 🔐 Role-Based Access Control (RBAC)
+
+ | Endpoint                    | Candidate | Recruiter |
+|-----------------------------|-----------|-----------|
+| Apply to Job                | ✅        | ❌        |
+| View Own Applications       | ✅        | ❌        |
+| View Job Applications       | ❌        | ✅        |
+| Change Application Stage    | ❌        | ✅        |
+| View Application Details    | ✅        | ✅        |
+
+## ER diagram
+```mermaid
+erDiagram
+    USER ||--o{ APPLICATION : applies
+    USER ||--o{ JOB : creates
+    COMPANY ||--o{ USER : employs
+    COMPANY ||--o{ JOB : owns
+    JOB ||--o{ APPLICATION : receives
+    APPLICATION ||--o{ APPLICATION_HISTORY : tracks
+
+    USER {
+        int id PK
+        string username
+        string role
+        string email
+    }
+
+    COMPANY {
+        int id PK
+        string name
+    }
+
+    JOB {
+        int id PK
+        string title
+        int company_id FK
+    }
+
+    APPLICATION {
+        int id PK
+        string stage
+        int job_id FK
+        int candidate_id FK
+    }
+
+    APPLICATION_HISTORY {
+        int id PK
+        string from_stage
+        string to_stage
+        int application_id FK
+    }
+ 
+```
+## Asynchronous Email Notifications
+```mermaid
+sequenceDiagram
+    participant C as Candidate
+    participant API as Django API
+    participant DB as Database
+    participant R as Redis Queue
+    participant W as Celery Worker
+    participant ES as Email Service
+    participant SMTP as SMTP Server
+    
+    C->>API: POST /api/applications
+    API->>DB: Save Application
+    DB-->>API: Application Saved
+    API-->>C: 201 Created (Immediate)
+    
+    API->>R: Enqueue Email Task
+    
+    Note over R,W: Asynchronous Processing
+    
+    R->>W: Task Available
+    W->>ES: Process Email Task
+    ES->>SMTP: Send Email
+    SMTP-->>ES: Email Sent
+    ES-->>W: Task Complete
+    
+    Note over W: Worker continues<br/>processing other tasks
+```
