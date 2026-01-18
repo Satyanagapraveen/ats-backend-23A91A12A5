@@ -148,8 +148,8 @@ class ApplicationDetailView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        # Recruiter can view applications of their company
-        if user.role == 'recruiter' and application.job.company != user.company:
+        # Recruiter/Hiring Manager can view applications of their company
+        if user.role in ['recruiter', 'hiring_manager'] and application.job.company != user.company:
             return Response(
                 {"detail": "Not authorized to view this application"},
                 status=status.HTTP_403_FORBIDDEN
@@ -181,9 +181,9 @@ class JobApplicationsView(APIView):
     def get(self, request, job_id):
         user = request.user
 
-        if user.role != 'recruiter':
+        if user.role not in ['recruiter', 'hiring_manager']:
             return Response(
-                {"detail": "Only recruiters can view job applications"},
+                {"detail": "Only recruiters and hiring managers can view job applications"},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -210,5 +210,3 @@ class JobApplicationsView(APIView):
 
         serializer = ApplicationDetailSerializer(applications, many=True)
         return Response(serializer.data)
-
-# Candidate email
