@@ -1,0 +1,25 @@
+# Django and REST Framework
+Django>=5.0,<7.0
+djangorestframework>=3.14.0
+djangorestframework-simplejwt>=5.3.0
+
+# Celery and Redis
+celery>=5.3.0
+redis>=5.0.0
+django-celery-results>=2.5.0
+
+# Database (optional - for production)
+# psycopg2-binary>=2.9.9  # Uncomment for PostgreSQL
+
+# Testing
+pytest>=7.4.0
+pytest-django>=4.5.0
+pytest-cov>=4.1.0
+factory-boy>=3.3.0
+
+# Development tools
+python-dotenv>=1.0.0
+
+# Production (optional)
+# gunicorn>=21.0.0
+# whitenoise>=6.6.0
